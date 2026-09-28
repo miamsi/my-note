@@ -95,3 +95,16 @@ mark{background:color-mix(in srgb,var(--ac) 22%,transparent);color:inherit;borde
 @media(max-width:860px){#app,#app.nonav{grid-template-columns:1fr}#main,#app.nonav #main{margin:0;border-radius:0}#doc{padding-top:14px}#set{left:12px;right:12px;width:auto}
 #side{position:fixed;inset:0 auto 0 0;width:min(330px,88vw);z-index:8;background:var(--pn);box-shadow:var(--sh);transform:translateX(-105%);transition:transform .3s var(--ez)}#app:not(.nonav) #side{transform:none}
 .navs{display:block;z-index:7;background:rgba(0,0,0,.35)}.hi{font-size:2em}}
+
+#toast{left:0;right:0;margin:0 auto;width:fit-content;transform:none}
+.today{margin:22px auto 0;padding:16px 18px;background:var(--pn);border:1px solid var(--ln);border-radius:18px}
+.th{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}.th h2{margin:0;font-size:1.25em;letter-spacing:-.02em}.th span{flex:1;color:var(--mu)}
+.tg h4{margin:14px 0 4px;font-size:.85em;font-weight:600;color:var(--mu)}.tg h4.od{color:#d13434}
+.tr{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:9px;cursor:pointer}.tr:hover{background:var(--hv)}.tr svg{color:var(--ac)}
+.tr input{width:17px;height:17px;padding:0;accent-color:var(--ac);flex:none}.tt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr time{color:var(--ac);font-size:.85em}.tr em{color:var(--mu);font-size:.8em;font-style:normal;max-width:30%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.none{color:var(--mu);margin:10px 0 0}
+.week{display:flex;gap:6px;margin:0 auto 4px}.week span{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:.72em;background:var(--hv);color:var(--mu)}.week span.on{background:var(--ac);color:#fff}
+.dim{background:rgba(0,0,0,.35);z-index:19}
+#pal{position:fixed;z-index:20;left:0;right:0;margin:0 auto;top:12vh;width:min(620px,92vw);background:var(--mica);backdrop-filter:blur(30px) saturate(180%);border:1px solid var(--ln);border-radius:18px;box-shadow:var(--sh);overflow:hidden;animation:up .22s var(--ez)}
+.pi{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--ln)}.pi svg{color:var(--mu)}.pi input,.pi input:focus{background:none;border:0;padding:6px 0}
+.pl{max-height:50vh;overflow:auto;padding:6px}.pl button{width:100%;justify-content:flex-start;padding:10px 12px;border-radius:10px}.pl button.on{background:color-mix(in srgb,var(--ac) 16%,transparent)}

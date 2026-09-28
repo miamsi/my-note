@@ -11,6 +11,12 @@ const DEF = { accent: COLORS[0], theme: 'light', font: 'sans', size: 16 };
 const P = { plus: 'M12 5v14M5 12h14', search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.3-4.3', share: 'M4 12v7h16v-7M12 3v13M8 7l4-4 4 4', pdf: 'M12 3v12M7 11l5 5 5-5M5 21h14', copy: 'M9 9h11v11H9zM5 15V5h10', trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3', split: 'M12 3v6M12 9l-6 6v6M12 9l6 6v6', spark: 'M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z', back: 'M15 5l-7 7 7 7', eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z', edit: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4', save: 'M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6', gear: 'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4', layers: 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5', cal: 'M5 5h14v15H5zM5 10h14M9 3v4M15 3v4', doc: 'M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h6', send: 'M12 19V5M6 11l6-6 6 6', undo: 'M9 14l-5-5 5-5M4 9h10a6 6 0 0 1 0 12h-3', out: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10', panel: 'M4 5h16v14H4zM9 5v14', pin: 'M12 17v5M9 3h6l-1 6 3 3v2H7v-2l3-3z', home: 'M4 11l8-7 8 7M6 10v10h12V10' };
 const I = ({ n }) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={P[n]} /></svg>;
 const B = ({ n, t, f, c = '' }) => <button className={'cb ' + c} onClick={f} title={t} aria-label={t}><I n={n} /><span className="lb">{t}</span></button>;
+const MO = 'jan feb mar apr may jun jul aug sep oct nov dec'.split(' ');
+const iso = (d) => new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+// finds a date in a line of text: 2026-10-05 or "Oct 5"
+const pd = (l) => { let m = l.match(/\b\d{4}-\d{2}-\d{2}\b/); if (m) return m[0];
+  m = l.match(/\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.? (\d{1,2})\b(?:,? (\d{4}))?/i); if (!m) return null;
+  return (m[3] || new Date().getFullYear()) + '-' + String(MO.indexOf(m[1].toLowerCase()) + 1).padStart(2, '0') + '-' + m[2].padStart(2, '0'); };
 const ago = (d) => { const s = (Date.now() - new Date(d)) / 1000; return s < 60 ? 'now' : s < 3600 ? Math.floor(s / 60) + 'm' : s < 86400 ? Math.floor(s / 3600) + 'h' : new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); };
 
 
@@ -61,7 +67,7 @@ function Auth() {
 function Notes({ user, prefs, setPref }) {
   const [notes, setNotes] = useState([]), [id, setId] = useState(null), [sel, setSel] = useState([]), [q, setQ] = useState('');
   const [screen, setScreen] = useState('home'), [nav, setNav] = useState(true), [sort, setSort] = useState('recent'), [tag, setTag] = useState(null), [pins, setPins] = useState([]), [st, setSt] = useState(''), [out, setOut] = useState(null);
-  const [busy, setBusy] = useState(false), [tm, setTm] = useState(''), [gear, setGear] = useState(false), [undo, setUndo] = useState(null), [qa, setQa] = useState('');
+  const [busy, setBusy] = useState(false), [tm, setTm] = useState(''), [gear, setGear] = useState(false), [undo, setUndo] = useState(null), [qa, setQa] = useState(''), [pal, setPal] = useState(false), [pq, setPq] = useState(''), [pi, setPi] = useState(0);
   const NR = useRef(notes), T = useRef({}), RM = useRef({}), pause = useRef(0);
   NR.current = notes;
   const cur = notes.find((n) => n.id == id);
@@ -75,6 +81,10 @@ function Notes({ user, prefs, setPref }) {
     });
   }, [user.id]);
 
+  useEffect(() => { // Ctrl/Cmd+K opens the command palette
+    const h = (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() == 'k') { e.preventDefault(); setPal((p) => !p); setPq(''); setPi(0); } };
+    addEventListener('keydown', h); return () => removeEventListener('keydown', h);
+  }, []);
   // ---- saving + AI memory
   const flush = async (nid) => {
     const n = NR.current.find((x) => x.id == nid); if (!n) return;
@@ -174,6 +184,47 @@ function Notes({ user, prefs, setPref }) {
   const tags = [...new Set(notes.flatMap((n) => n.tags || []))].slice(0, 12);
   const cards = list.filter((n) => !tag || (n.tags || []).includes(tag))
     .sort((a, b) => (pins.includes(b.id) - pins.includes(a.id)) || (sort == 'title' ? a.title.localeCompare(b.title) : 0));
+  // ---- Today: tasks and dates found in every note (no AI needed, so it is instant)
+  const todayIso = iso(new Date()), in7 = iso(new Date(Date.now() + 7 * 864e5));
+  const ag = [];
+  notes.forEach((n) => n.content.split('\n').forEach((l, i) => {
+    const t = l.match(/^\s*[-*]\s\[( |x|X)\]\s+(.*)/); if (t && t[1] != ' ') return;
+    const d = pd(l); if (!t && !d) return;
+    ag.push({ n, i, task: !!t, d, text: (t ? t[2] : l.replace(/^[#>\s*-]+/, '')).trim() });
+  }));
+  const bucket = [['Overdue', ag.filter((x) => x.task && x.d && x.d < todayIso)], ['Today', ag.filter((x) => x.d == todayIso)], ['This week', ag.filter((x) => x.d > todayIso && x.d <= in7)], ['Open tasks', ag.filter((x) => x.task && !x.d)]]
+    .map(([k, v]) => [k, v.sort((a, b) => (a.d || '').localeCompare(b.d || '')).slice(0, k == 'Open tasks' ? 6 : 8)]).filter(([, v]) => v.length);
+  const tickTask = (x) => {
+    const c = x.n.content.split('\n'); c[x.i] = c[x.i].replace('[ ]', '[x]'); upd(x.n.id, { content: c.join('\n') });
+    clearTimeout(T.current['s' + x.n.id]); T.current['s' + x.n.id] = setTimeout(() => flush(x.n.id), 400);
+  };
+  const brief = () => run('Preparing your brief…', async () => {
+    if (!ag.length) throw Error('No tasks or dates in your notes yet');
+    const agText = ag.slice(0, 60).map((x) => (x.d || 'no date') + ' | ' + (x.task ? 'TASK' : 'EVENT') + ' | ' + x.text + ' (' + x.n.title + ')').join('\n').slice(0, 6000);
+    const r = await aj('ask', { prompt: 'Today is ' + todayIso + '. Write my brief for today: what is overdue, what is due today, what is coming this week, and what to focus on first. Short and friendly.', notes: [{ id: 'agenda', title: 'Agenda extracted from my notes', text: agText }] });
+    setOut({ md: r.answer, ids: [] });
+  });
+  const days = new Set(notes.flatMap((n) => [n.created_at, n.updated_at].filter(Boolean).map((d) => iso(new Date(d)))));
+  const week = <div className="week" title="Days you wrote or edited notes">{Array.from({ length: 7 }, (_, k) => { const d = new Date(Date.now() - (6 - k) * 864e5); return <span key={k} className={days.has(iso(d)) ? 'on' : ''}>{'SMTWTFS'[d.getDay()]}</span>; })}</div>;
+  const today = (
+    <section className="today">
+      <div className="th"><h2>Today</h2><span>{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</span><button className="pill" onClick={brief}><I n="spark" />Brief me</button></div>
+      {bucket.length ? bucket.map(([k, v]) => <div key={k} className="tg"><h4 className={k == 'Overdue' ? 'od' : ''}>{k}</h4>
+        {v.map((x, j) => <div key={j} className="tr" onClick={() => open(x.n.id)}>
+          {x.task ? <input type="checkbox" aria-label="Mark done" onClick={(e) => e.stopPropagation()} onChange={() => tickTask(x)} /> : <I n="cal" />}
+          <span className="tt">{x.text}</span>{x.d && x.d != todayIso && <time>{x.d.slice(5)}</time>}<em>{x.n.title || 'Untitled'}</em></div>)}</div>)
+        : <p className="none">Nothing scheduled. Write a task like “- [ ] Call Sam 2026-10-02” in any note and it appears here.</p>}
+    </section>
+  );
+  // ---- Command palette
+  const acts = [['plus', 'New note', () => add()], ['home', 'Go to Home', () => setScreen('home')], ['panel', 'Toggle sidebar', () => setNav((v) => !v)],
+    ['gear', 'Toggle dark mode', () => setPref('theme', prefs.theme == 'dark' ? 'light' : 'dark')], ['cal', 'Brief me on today', brief],
+    ...(cur && !home ? [['spark', 'Format this note', fmt], ['doc', 'Resume this note', resume], ['cal', 'Find dates in this note', dates], ['pdf', 'Export PDF', pdf], ['share', 'Share or unshare', share]] : [])];
+  const pl = pq.toLowerCase();
+  const pitems = [...(pq ? [['send', 'Ask AI: “' + pq + '”', () => ask(pq)]] : []), ...acts.filter((a) => a[1].toLowerCase().includes(pl)),
+    ...(pq ? notes.filter((n) => (n.title + n.summary + n.content).toLowerCase().includes(pl)).slice(0, 6).map((n) => ['doc', n.title || 'Untitled', () => open(n.id)]) : [])];
+  const runItem = (x) => { setPal(false); setPq(''); x && x[2](); };
+  const pkey = (e) => { if (e.key == 'Escape') setPal(false); else if (e.key == 'ArrowDown') { e.preventDefault(); setPi((i) => Math.min(i + 1, pitems.length - 1)); } else if (e.key == 'ArrowUp') { e.preventDefault(); setPi((i) => Math.max(i - 1, 0)); } else if (e.key == 'Enter') runItem(pitems[pi]); };
   const wc = cur ? cur.content.trim().split(/\s+/).filter(Boolean).length : 0;
   const hr = new Date().getHours(), hi = hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
   const aiUI = (
@@ -211,6 +262,7 @@ function Notes({ user, prefs, setPref }) {
           <header>
             <h2 className="brand" style={{ cursor: 'pointer' }} onClick={() => { setScreen('home'); if (innerWidth < 860) setNav(false); }}><span className="logo"><I n="doc" /></span>Desknotes</h2>
             <button className="ib" title="Style" aria-label="Style" onClick={() => setGear(!gear)}><I n="gear" /></button>
+            <button className="ib" title="Commands (Ctrl K)" aria-label="Commands" onClick={() => setPal(true)}><I n="spark" /></button>
             <button className="ib" title="Hide sidebar" aria-label="Hide sidebar" onClick={() => setNav(false)}><I n="panel" /></button>
           </header>
           <div className="srch"><I n="search" /><input placeholder="Search notes" value={q} onChange={(e) => setQ(e.target.value)} /></div>
@@ -243,7 +295,9 @@ function Notes({ user, prefs, setPref }) {
               </div>
               <h1 className="hi">{hi}</h1>
               <p className="sub">{notes.length} {notes.length == 1 ? 'note' : 'notes'}. Ask anything, or pick up where you left off.</p>
+              {week}
               {aiUI}
+              {today}
               <div className="lh">
                 <h2>Your notes</h2>
                 {sel.length > 0 ? <div className="selbar"><span>{sel.length} selected</span>{sel.length > 1 && <button className="p" onClick={merge}><I n="layers" />Merge</button>}<button className="cb d" onClick={delSel}><I n="trash" />Delete</button><button onClick={() => setSel([])}>Clear</button></div>
@@ -271,6 +325,7 @@ function Notes({ user, prefs, setPref }) {
               <div id="bar">
                 <button className="ib" title="Toggle sidebar" aria-label="Toggle sidebar" onClick={() => setNav(!nav)}><I n="panel" /></button>
                 <B n="home" t="Home" f={() => setScreen('home')} />
+                <B n="spark" t="Commands" f={() => setPal(true)} />
                 <i className="sep" />
                 <B n="save" t="Save" f={() => flush(cur.id)} />
                 <B n="share" t={cur.share_id ? 'Unshare' : 'Share'} f={share} />
@@ -292,6 +347,10 @@ function Notes({ user, prefs, setPref }) {
           )}
         </main>
       </div>
+      {pal && <><div className="scrim dim" onClick={() => setPal(false)} /><div id="pal">
+        <div className="pi"><I n="search" /><input autoFocus placeholder="Search notes, run a command, or ask AI…" value={pq} onChange={(e) => { setPq(e.target.value); setPi(0); }} onKeyDown={pkey} /></div>
+        <div className="pl">{pitems.map((x, i) => <button key={i} className={i == pi ? 'on' : ''} onMouseEnter={() => setPi(i)} onClick={() => runItem(x)}><I n={x[0]} />{x[1]}</button>)}</div>
+      </div></>}
       {gear && <><div className="scrim" onClick={() => setGear(false)} /><div id="set">
         <div className="seg">{['light', 'dark'].map((t) => <button key={t} className={prefs.theme == t ? 'on' : ''} onClick={() => setPref('theme', t)}>{t == 'light' ? 'Light' : 'Dark'}</button>)}</div>
         <div className="seg">{['sans', 'serif', 'mono'].map((f) => <button key={f} className={prefs.font == f ? 'on' : ''} onClick={() => setPref('font', f)}>{f == 'sans' ? 'Sans' : f == 'serif' ? 'Serif' : 'Mono'}</button>)}</div>

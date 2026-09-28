@@ -2,12 +2,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { sb } from '../lib/supabase';
 import Md from '../components/Md';
+import Editor from '../components/Editor';
 
 const FONTS = { sans: '"Segoe UI Variable Text",system-ui,-apple-system,sans-serif', serif: 'Georgia,"Times New Roman",serif', mono: 'ui-monospace,Menlo,Consolas,monospace' };
 const COLORS = ['#0f6cbd', '#0e8a7d', '#7160e8', '#d13c8b', '#e26b0a', '#2d9d4f'];
 const DEF = { accent: COLORS[0], theme: 'light', font: 'sans', size: 16 };
 
-const P = { plus: 'M12 5v14M5 12h14', search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.3-4.3', share: 'M4 12v7h16v-7M12 3v13M8 7l4-4 4 4', pdf: 'M12 3v12M7 11l5 5 5-5M5 21h14', copy: 'M9 9h11v11H9zM5 15V5h10', trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3', split: 'M12 3v6M12 9l-6 6v6M12 9l6 6v6', spark: 'M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z', back: 'M15 5l-7 7 7 7', eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z', edit: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4', save: 'M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6', gear: 'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4', layers: 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5', cal: 'M5 5h14v15H5zM5 10h14M9 3v4M15 3v4', doc: 'M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h6', send: 'M12 19V5M6 11l6-6 6 6', undo: 'M9 14l-5-5 5-5M4 9h10a6 6 0 0 1 0 12h-3', out: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10' };
+const P = { plus: 'M12 5v14M5 12h14', search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.3-4.3', share: 'M4 12v7h16v-7M12 3v13M8 7l4-4 4 4', pdf: 'M12 3v12M7 11l5 5 5-5M5 21h14', copy: 'M9 9h11v11H9zM5 15V5h10', trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3', split: 'M12 3v6M12 9l-6 6v6M12 9l6 6v6', spark: 'M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z', back: 'M15 5l-7 7 7 7', eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z', edit: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4', save: 'M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6', gear: 'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4', layers: 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5', cal: 'M5 5h14v15H5zM5 10h14M9 3v4M15 3v4', doc: 'M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h6', send: 'M12 19V5M6 11l6-6 6 6', undo: 'M9 14l-5-5 5-5M4 9h10a6 6 0 0 1 0 12h-3', out: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10', panel: 'M4 5h16v14H4zM9 5v14', pin: 'M12 17v5M9 3h6l-1 6 3 3v2H7v-2l3-3z', home: 'M4 11l8-7 8 7M6 10v10h12V10' };
 const I = ({ n }) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={P[n]} /></svg>;
 const B = ({ n, t, f, c = '' }) => <button className={'cb ' + c} onClick={f} title={t} aria-label={t}><I n={n} /><span className="lb">{t}</span></button>;
 const ago = (d) => { const s = (Date.now() - new Date(d)) / 1000; return s < 60 ? 'now' : s < 3600 ? Math.floor(s / 60) + 'm' : s < 86400 ? Math.floor(s / 3600) + 'h' : new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); };
@@ -59,17 +60,18 @@ function Auth() {
 
 function Notes({ user, prefs, setPref }) {
   const [notes, setNotes] = useState([]), [id, setId] = useState(null), [sel, setSel] = useState([]), [q, setQ] = useState('');
-  const [rd, setRd] = useState(false), [view, setView] = useState('list'), [st, setSt] = useState(''), [out, setOut] = useState(null);
+  const [screen, setScreen] = useState('home'), [nav, setNav] = useState(true), [sort, setSort] = useState('recent'), [tag, setTag] = useState(null), [pins, setPins] = useState([]), [st, setSt] = useState(''), [out, setOut] = useState(null);
   const [busy, setBusy] = useState(false), [tm, setTm] = useState(''), [gear, setGear] = useState(false), [undo, setUndo] = useState(null), [qa, setQa] = useState('');
   const NR = useRef(notes), T = useRef({}), RM = useRef({}), pause = useRef(0);
   NR.current = notes;
   const cur = notes.find((n) => n.id == id);
+  const home = screen == 'home' || !cur;
   const toast = (m) => { setTm(m); clearTimeout(T.current.t); T.current.t = setTimeout(() => setTm(''), 2800); };
   const upd = (nid, f) => setNotes((ns) => ns.map((n) => (n.id == nid ? { ...n, ...f } : n)));
-  useEffect(() => { document.body.dataset.v = view; }, [view]);
+  useEffect(() => { if (innerWidth < 860) setNav(false); try { setPins(JSON.parse(localStorage.getItem('pins') || '[]')); } catch {} }, []);
   useEffect(() => {
     sb.from('notes').select('*').order('updated_at', { ascending: false }).limit(300).then(({ data, error }) => {
-      if (error) toast(error.message); setNotes(data || []); if (data?.length) setId(data[0].id);
+      if (error) toast(error.message); setNotes(data || []);
     });
   }, [user.id]);
 
@@ -107,7 +109,7 @@ function Notes({ user, prefs, setPref }) {
   };
 
   // ---- note actions
-  const open = (nid) => { setId(nid); setRd(false); setUndo(null); setOut(null); setSt(''); setView('edit'); };
+  const open = (nid) => { setId(nid); setUndo(null); setOut(null); setSt(''); setScreen('note'); if (innerWidth < 860) setNav(false); };
   const add = async (o = {}) => {
     const { data, error } = await sb.from('notes').insert({ title: 'Untitled', content: '', ...o }).select().single();
     if (error) return toast(error.message); setNotes((ns) => [data, ...ns]); open(data.id);
@@ -115,7 +117,7 @@ function Notes({ user, prefs, setPref }) {
   const del = async () => {
     if (!cur || !confirm('Delete "' + cur.title + '"?')) return;
     const { error } = await sb.from('notes').delete().eq('id', cur.id); if (error) return toast(error.message);
-    const rest = notes.filter((n) => n.id != cur.id); setNotes(rest); setId(rest[0]?.id ?? null); setView('list');
+    const rest = notes.filter((n) => n.id != cur.id); setNotes(rest); setId(null); setScreen('home');
   };
   const cp = (t) => cur && add({ title: t, content: cur.content, summary: cur.summary, tags: cur.tags });
   const share = async () => {
@@ -127,18 +129,18 @@ function Notes({ user, prefs, setPref }) {
   const text = () => '# ' + cur.title + '\n' + cur.content;
   const fmt = () => run('Formatting…', async () => {
     if (!cur.content.trim()) throw Error('Write something first');
-    const t = await ai('format', { note: cur.content }); setUndo(cur.content); edit('content', t); setOut(null); setRd(false);
+    const t = await ai('format', { note: cur.content }); setUndo(cur.content); edit('content', t); setOut(null);
   });
   const resume = () => run('Writing resume…', async () => { const t = await ai('resume', { note: text() }); setOut({ md: t, ins: t }); });
   const dates = () => run('Finding dates…', async () => { const r = await aj('dates', { note: text() }); setOut({ dates: r.items || [] }); });
-  const ask = () => {
-    const s = qa.trim(); if (!s) return;
+  const ask = (t) => {
+    const s = (typeof t == 'string' ? t : qa).trim(); if (!s) return; setQa(s);
     run('Searching your notes…', async () => {
       const w = s.toLowerCase().split(/\W+/).filter((x) => x.length > 2);
       const top = notes.map((n) => [w.reduce((a, x) => a + ((n.title + ' ' + n.summary + ' ' + n.tags + ' ' + n.content).toLowerCase().includes(x) ? 1 : 0), 0), n])
-        .sort((a, b) => b[0] - a[0]).slice(0, 8).map((x) => x[1]).filter((n) => n.id != id)
+        .sort((a, b) => b[0] - a[0]).slice(0, 8).map((x) => x[1]).filter((n) => home || n.id != id)
         .map((n) => ({ id: n.id, title: n.title, summary: n.summary, tags: n.tags, text: n.content.slice(0, 600) }));
-      if (cur) top.unshift({ id: cur.id, title: 'CURRENT NOTE: ' + cur.title, text: cur.content.slice(0, 3000) });
+      if (cur && !home) top.unshift({ id: cur.id, title: 'CURRENT NOTE: ' + cur.title, text: cur.content.slice(0, 3000) });
       const r = await aj('ask', { prompt: s, notes: top });
       setOut({ md: r.answer, ids: (r.ids || []).filter((i) => notes.some((n) => n.id == i)) });
     });
@@ -163,14 +165,53 @@ function Notes({ user, prefs, setPref }) {
   const list = [...notes].sort((a, b) => b.updated_at.localeCompare(a.updated_at))
     .filter((n) => !q || (n.title + n.content + n.summary + n.tags).toLowerCase().includes(q.toLowerCase()));
 
+  const togglePin = (x) => setPins((p) => { const n = p.includes(x) ? p.filter((y) => y != x) : [...p, x]; try { localStorage.setItem('pins', JSON.stringify(n)); } catch {} return n; });
+  const delSel = async () => {
+    if (!confirm('Delete ' + sel.length + ' notes?')) return;
+    const { error } = await sb.from('notes').delete().in('id', sel); if (error) return toast(error.message);
+    setNotes((ns) => ns.filter((n) => !sel.includes(n.id))); if (sel.includes(id)) { setId(null); setScreen('home'); } setSel([]);
+  };
+  const tags = [...new Set(notes.flatMap((n) => n.tags || []))].slice(0, 12);
+  const cards = list.filter((n) => !tag || (n.tags || []).includes(tag))
+    .sort((a, b) => (pins.includes(b.id) - pins.includes(a.id)) || (sort == 'title' ? a.title.localeCompare(b.title) : 0));
   const wc = cur ? cur.content.trim().split(/\s+/).filter(Boolean).length : 0;
+  const hr = new Date().getHours(), hi = hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
+  const aiUI = (
+    <div id="ai" className={home ? 'home' : ''}>
+      {out && <div id="out">
+        {out.m ? <i style={{ color: 'var(--mu)' }}>{out.m}</i>
+          : out.dates ? (out.dates.length ? out.dates.map((d, i) => <p key={i}><mark>{d.when}</mark> {d.what}</p>) : 'No dates found.')
+          : <>
+            <Md text={out.md} />
+            {out.ins && <button className="pill" onClick={() => { edit('content', cur.content + '\n\n## Summary\n' + out.ins); setOut(null); }}><I n="plus" />Add to note</button>}
+            {(out.ids || []).map((i) => <button key={i} className="pill" onClick={() => open(i)}><I n="doc" />{notes.find((n) => n.id == i).title}</button>)}
+          </>}
+      </div>}
+      <div className="cap">
+        <I n="spark" />
+        <input placeholder="Ask your notes anything…" value={qa} onChange={(e) => setQa(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && ask()} />
+        <button className="p" onClick={ask} aria-label="Ask"><I n="send" /></button>
+      </div>
+      <div className="chips">
+        {home ? ['What deadlines are coming up?', 'Summarize my recent notes', 'List all my open tasks'].map((t) => <button key={t} className="pill" onClick={() => ask(t)}>{t}</button>)
+          : <>
+            <button className="pill" onClick={fmt}><I n="spark" />Format</button>
+            <button className="pill" onClick={resume}><I n="doc" />Resume</button>
+            <button className="pill" onClick={dates}><I n="cal" />Dates</button>
+            {undo != null && <button className="pill" onClick={() => { edit('content', undo); setUndo(null); }}><I n="undo" />Undo AI</button>}
+          </>}
+      </div>
+    </div>
+  );
   return (
     <>
-      <div id="app">
+      <div id="app" className={nav ? '' : 'nonav'}>
+        {nav && <div className="scrim navs" onClick={() => setNav(false)} />}
         <aside id="side">
           <header>
-            <h2 className="brand"><span className="logo"><I n="doc" /></span>Desknotes</h2>
+            <h2 className="brand" style={{ cursor: 'pointer' }} onClick={() => { setScreen('home'); if (innerWidth < 860) setNav(false); }}><span className="logo"><I n="doc" /></span>Desknotes</h2>
             <button className="ib" title="Style" aria-label="Style" onClick={() => setGear(!gear)}><I n="gear" /></button>
+            <button className="ib" title="Hide sidebar" aria-label="Hide sidebar" onClick={() => setNav(false)}><I n="panel" /></button>
           </header>
           <div className="srch"><I n="search" /><input placeholder="Search notes" value={q} onChange={(e) => setQ(e.target.value)} /></div>
           <div className="act">
@@ -179,12 +220,11 @@ function Notes({ user, prefs, setPref }) {
           </div>
           <div id="list">
             {list.map((n) => (
-              <div key={n.id} className={'it' + (n.id == id ? ' on' : '')} onClick={() => open(n.id)}>
-                <input type="checkbox" aria-label="Select for merge" checked={sel.includes(n.id)} onClick={(e) => e.stopPropagation()} onChange={() => setSel((s) => (s.includes(n.id) ? s.filter((x) => x != n.id) : [...s, n.id]))} />
+              <div key={n.id} className={'it' + (n.id == id && !home ? ' on' : '')} onClick={() => open(n.id)}>
+                <input type="checkbox" aria-label="Select" checked={sel.includes(n.id)} onClick={(e) => e.stopPropagation()} onChange={() => setSel((s) => (s.includes(n.id) ? s.filter((x) => x != n.id) : [...s, n.id]))} />
                 <div className="tx">
                   <div className="r1"><b>{n.title || 'Untitled'}</b><time>{ago(n.updated_at)}</time></div>
                   <small>{n.summary || n.content.slice(0, 100) || 'No content yet'}</small>
-                  {n.share_id && <em className="shr">Shared</em>}
                 </div>
               </div>
             ))}
@@ -194,13 +234,45 @@ function Notes({ user, prefs, setPref }) {
             <button className="ib" title="Log out" aria-label="Log out" onClick={() => sb.auth.signOut()}><I n="out" /></button></footer>
         </aside>
         <main id="main">
-          {cur ? (
+          {home ? (
+            <div id="doc" className="homepage">
+              <div className="hh">
+                {!nav && <button className="ib" title="Show sidebar" aria-label="Show sidebar" onClick={() => setNav(true)}><I n="panel" /></button>}
+                <div className="srch top"><I n="search" /><input placeholder="Search notes" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+                <button className="p" onClick={() => add()}><I n="plus" />New note</button>
+              </div>
+              <h1 className="hi">{hi}</h1>
+              <p className="sub">{notes.length} {notes.length == 1 ? 'note' : 'notes'}. Ask anything, or pick up where you left off.</p>
+              {aiUI}
+              <div className="lh">
+                <h2>Your notes</h2>
+                {sel.length > 0 ? <div className="selbar"><span>{sel.length} selected</span>{sel.length > 1 && <button className="p" onClick={merge}><I n="layers" />Merge</button>}<button className="cb d" onClick={delSel}><I n="trash" />Delete</button><button onClick={() => setSel([])}>Clear</button></div>
+                  : <div className="seg sm">{[['recent', 'Recent'], ['title', 'A–Z']].map(([k, l]) => <button key={k} className={sort == k ? 'on' : ''} onClick={() => setSort(k)}>{l}</button>)}</div>}
+              </div>
+              {tags.length > 0 && <div className="chips left">{tags.map((t) => <button key={t} className={'pill' + (tag == t ? ' on' : '')} onClick={() => setTag(tag == t ? null : t)}>{t}</button>)}</div>}
+              <div className="grid">
+                {cards.map((n) => (
+                  <div key={n.id} className={'card' + (sel.includes(n.id) ? ' sel' : '')} onClick={() => open(n.id)}>
+                    <div className="ch"><b>{n.title || 'Untitled'}</b>
+                      <button className={'ib pin' + (pins.includes(n.id) ? ' on' : '')} title="Pin" aria-label="Pin" onClick={(e) => { e.stopPropagation(); togglePin(n.id); }}><I n="pin" /></button></div>
+                    <p>{n.summary || n.content.replace(/[#*>`\[\]-]/g, '').slice(0, 140) || 'No content yet'}</p>
+                    <div className="cf">
+                      <input type="checkbox" aria-label="Select" checked={sel.includes(n.id)} onClick={(e) => e.stopPropagation()} onChange={() => setSel((x) => (x.includes(n.id) ? x.filter((y) => y != n.id) : [...x, n.id]))} />
+                      <span>{ago(n.updated_at)}</span>{n.share_id && <span className="shr">Shared</span>}
+                      {(n.tags || []).slice(0, 2).map((t) => <span key={t} className="chip">{t}</span>)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {!cards.length && <div className="empty"><I n="doc" /><h3>{notes.length ? 'Nothing matches' : 'Your desk is clear'}</h3><p>{notes.length ? 'Try a different search or tag.' : 'Write a note and AI will organise and remember it.'}</p></div>}
+            </div>
+          ) : (
             <>
               <div id="bar">
-                <button className="cb" id="back" onClick={() => setView('list')}><I n="back" />Notes</button>
-                <B n={rd ? 'edit' : 'eye'} t={rd ? 'Edit' : 'Read'} f={() => setRd(!rd)} />
-                <B n="save" t="Save" f={() => flush(cur.id)} />
+                <button className="ib" title="Toggle sidebar" aria-label="Toggle sidebar" onClick={() => setNav(!nav)}><I n="panel" /></button>
+                <B n="home" t="Home" f={() => setScreen('home')} />
                 <i className="sep" />
+                <B n="save" t="Save" f={() => flush(cur.id)} />
                 <B n="share" t={cur.share_id ? 'Unshare' : 'Share'} f={share} />
                 <B n="pdf" t="Export PDF" f={pdf} />
                 <i className="sep" />
@@ -213,35 +285,11 @@ function Notes({ user, prefs, setPref }) {
               <div id="doc">
                 <input id="title" placeholder="Title" value={cur.title} onChange={(e) => edit('title', e.target.value)} />
                 <div className="meta"><span>Edited {ago(cur.updated_at)}</span>{cur.share_id && <span className="shr">· Shared</span>}{(cur.tags || []).map((t) => <span key={t} className="chip">{t}</span>)}</div>
-                {rd ? <div id="view"><Md text={cur.content} /></div>
-                  : <textarea id="body" placeholder="Start writing. AI will understand and remember it." value={cur.content} onChange={(e) => edit('content', e.target.value)} />}
+                <Editor key={cur.id} value={cur.content} onChange={(v) => edit('content', v)} />
               </div>
+              {aiUI}
             </>
-          ) : (
-            <div id="doc"><div className="empty"><I n="doc" /><h3>Your desk is clear</h3><p>Write a note and AI will organise and remember it.</p><button className="p" onClick={() => add()}><I n="plus" />New note</button></div></div>
           )}
-          <div id="ai">
-            {out && <div id="out">
-              {out.m ? <i style={{ color: 'var(--mu)' }}>{out.m}</i>
-                : out.dates ? (out.dates.length ? out.dates.map((d, i) => <p key={i}><mark>{d.when}</mark> {d.what}</p>) : 'No dates found.')
-                : <>
-                  <Md text={out.md} />
-                  {out.ins && <button className="pill" onClick={() => { edit('content', cur.content + '\n\n## Summary\n' + out.ins); setOut(null); }}><I n="plus" />Add to note</button>}
-                  {(out.ids || []).map((i) => <button key={i} className="pill" onClick={() => open(i)}><I n="doc" />{notes.find((n) => n.id == i).title}</button>)}
-                </>}
-            </div>}
-            <div className="cap">
-              <I n="spark" />
-              <input placeholder="Ask your notes anything…" value={qa} onChange={(e) => setQa(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && ask()} />
-              <button className="p" onClick={ask} aria-label="Ask"><I n="send" /></button>
-            </div>
-            {cur && <div className="chips">
-              <button className="pill" onClick={fmt}><I n="spark" />Format</button>
-              <button className="pill" onClick={resume}><I n="doc" />Resume</button>
-              <button className="pill" onClick={dates}><I n="cal" />Dates</button>
-              {undo != null && <button className="pill" onClick={() => { edit('content', undo); setUndo(null); }}><I n="undo" />Undo AI</button>}
-            </div>}
-          </div>
         </main>
       </div>
       {gear && <><div className="scrim" onClick={() => setGear(false)} /><div id="set">

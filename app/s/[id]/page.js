@@ -18,10 +18,10 @@ export default async function Shared({ params }) {
   return (
     <div id="shared" style={{ display: 'block' }}>
       {n ? (
-        <div style={{ padding: '16px 24px' }}>
+        <article>
           <h1>{n.title}</h1><Md text={n.content} />
           <p style={{ color: 'var(--mu)' }}><small>Shared with Desknotes</small></p>
-        </div>
+        </article>
       ) : <p style={{ padding: 24 }}>This link is no longer shared.</p>}
     </div>
   );

@@ -3,9 +3,15 @@ import { useEffect, useRef, useState } from 'react';
 import { sb } from '../lib/supabase';
 import Md from '../components/Md';
 
-const FONTS = { sans: 'system-ui,-apple-system,"Segoe UI",sans-serif', serif: 'Georgia,"Times New Roman",serif', mono: 'ui-monospace,Menlo,Consolas,monospace' };
-const COLORS = ['#0f8b8d', '#5b5bd6', '#d6336c', '#e8590c', '#2f9e44', '#7048e8'];
+const FONTS = { sans: '"Segoe UI Variable Text",system-ui,-apple-system,sans-serif', serif: 'Georgia,"Times New Roman",serif', mono: 'ui-monospace,Menlo,Consolas,monospace' };
+const COLORS = ['#0f6cbd', '#0e8a7d', '#7160e8', '#d13c8b', '#e26b0a', '#2d9d4f'];
 const DEF = { accent: COLORS[0], theme: 'light', font: 'sans', size: 16 };
+
+const P = { plus: 'M12 5v14M5 12h14', search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM21 21l-4.3-4.3', share: 'M4 12v7h16v-7M12 3v13M8 7l4-4 4 4', pdf: 'M12 3v12M7 11l5 5 5-5M5 21h14', copy: 'M9 9h11v11H9zM5 15V5h10', trash: 'M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3', split: 'M12 3v6M12 9l-6 6v6M12 9l6 6v6', spark: 'M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z', back: 'M15 5l-7 7 7 7', eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z', edit: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4', save: 'M5 4h11l3 3v13H5zM8 4v5h7V4M8 20v-6h8v6', gear: 'M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4', layers: 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5', cal: 'M5 5h14v15H5zM5 10h14M9 3v4M15 3v4', doc: 'M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h6', send: 'M12 19V5M6 11l6-6 6 6', undo: 'M9 14l-5-5 5-5M4 9h10a6 6 0 0 1 0 12h-3', out: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10' };
+const I = ({ n }) => <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={P[n]} /></svg>;
+const B = ({ n, t, f, c = '' }) => <button className={'cb ' + c} onClick={f} title={t} aria-label={t}><I n={n} /><span className="lb">{t}</span></button>;
+const ago = (d) => { const s = (Date.now() - new Date(d)) / 1000; return s < 60 ? 'now' : s < 3600 ? Math.floor(s / 60) + 'm' : s < 86400 ? Math.floor(s / 3600) + 'h' : new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); };
+
 
 export default function Page() {
   const [user, setUser] = useState(undefined);
@@ -157,76 +163,93 @@ function Notes({ user, prefs, setPref }) {
   const list = [...notes].sort((a, b) => b.updated_at.localeCompare(a.updated_at))
     .filter((n) => !q || (n.title + n.content + n.summary + n.tags).toLowerCase().includes(q.toLowerCase()));
 
+  const wc = cur ? cur.content.trim().split(/\s+/).filter(Boolean).length : 0;
   return (
     <>
       <div id="app">
         <aside id="side">
           <header>
-            <button className="p" onClick={() => add()}>+ New note</button>
-            {sel.length > 1 && <button onClick={merge}>Merge ({sel.length})</button>}
-            <button style={{ marginLeft: 'auto' }} onClick={() => setGear(!gear)}>Style</button>
+            <h2 className="brand"><span className="logo"><I n="doc" /></span>Desknotes</h2>
+            <button className="ib" title="Style" aria-label="Style" onClick={() => setGear(!gear)}><I n="gear" /></button>
           </header>
-          <div style={{ padding: '0 12px 8px' }}><input placeholder="Search notes…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+          <div className="srch"><I n="search" /><input placeholder="Search notes" value={q} onChange={(e) => setQ(e.target.value)} /></div>
+          <div className="act">
+            <button className="p" onClick={() => add()}><I n="plus" />New note</button>
+            {sel.length > 1 && <button className="pill" onClick={merge}><I n="layers" />Merge {sel.length}</button>}
+          </div>
           <div id="list">
             {list.map((n) => (
               <div key={n.id} className={'it' + (n.id == id ? ' on' : '')} onClick={() => open(n.id)}>
-                <input type="checkbox" aria-label="Select" checked={sel.includes(n.id)} onClick={(e) => e.stopPropagation()} onChange={() => setSel((s) => (s.includes(n.id) ? s.filter((x) => x != n.id) : [...s, n.id]))} />
-                <div style={{ minWidth: 0 }}>
-                  <b>{n.title}{n.share_id ? ' 🔗' : ''}</b><small>{n.summary || n.content.slice(0, 90)}</small>
-                  {(n.tags || []).map((t) => <span key={t} className="chip" style={{ background: 'var(--bg)' }}>{t}</span>)}
+                <input type="checkbox" aria-label="Select for merge" checked={sel.includes(n.id)} onClick={(e) => e.stopPropagation()} onChange={() => setSel((s) => (s.includes(n.id) ? s.filter((x) => x != n.id) : [...s, n.id]))} />
+                <div className="tx">
+                  <div className="r1"><b>{n.title || 'Untitled'}</b><time>{ago(n.updated_at)}</time></div>
+                  <small>{n.summary || n.content.slice(0, 100) || 'No content yet'}</small>
+                  {n.share_id && <em className="shr">Shared</em>}
                 </div>
               </div>
             ))}
-            {!list.length && <p style={{ padding: 16, color: 'var(--mu)' }}>No notes yet. Create one and start writing.</p>}
+            {!list.length && <p style={{ padding: 16, color: 'var(--mu)' }}>{q ? 'No notes match your search.' : 'No notes yet.'}</p>}
           </div>
-          <header><small style={{ color: 'var(--mu)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.email}</small><button style={{ marginLeft: 'auto' }} onClick={() => sb.auth.signOut()}>Log out</button></header>
+          <footer><span className="me">{(user.email || '?')[0].toUpperCase()}</span><small>{user.email}</small>
+            <button className="ib" title="Log out" aria-label="Log out" onClick={() => sb.auth.signOut()}><I n="out" /></button></footer>
         </aside>
         <main id="main">
           {cur ? (
             <>
               <div id="bar">
-                <button id="back" onClick={() => setView('list')}>‹ Notes</button>
-                <button onClick={() => setRd(!rd)}>{rd ? 'Edit' : 'Read'}</button>
-                <button onClick={() => flush(cur.id)}>Save</button>
-                <button onClick={share}>{cur.share_id ? 'Unshare' : 'Share'}</button>
-                <button onClick={pdf}>PDF</button>
-                <button onClick={() => cp(cur.title + ' (copy)')}>Duplicate</button>
-                <button onClick={() => { const t = prompt('Save as…', cur.title + ' (copy)'); if (t) cp(t); }}>Save as</button>
-                <button onClick={split}>Split</button>
-                <button className="d" onClick={del}>Delete</button>
-                <span id="st">{st}</span>
+                <button className="cb" id="back" onClick={() => setView('list')}><I n="back" />Notes</button>
+                <B n={rd ? 'edit' : 'eye'} t={rd ? 'Edit' : 'Read'} f={() => setRd(!rd)} />
+                <B n="save" t="Save" f={() => flush(cur.id)} />
+                <i className="sep" />
+                <B n="share" t={cur.share_id ? 'Unshare' : 'Share'} f={share} />
+                <B n="pdf" t="Export PDF" f={pdf} />
+                <i className="sep" />
+                <B n="copy" t="Duplicate" f={() => cp(cur.title + ' (copy)')} />
+                <B n="doc" t="Save as" f={() => { const t = prompt('Save as…', cur.title + ' (copy)'); if (t) cp(t); }} />
+                <B n="split" t="Split" f={split} />
+                <B n="trash" t="Delete" f={del} c="d" />
+                <span id="st">{st || wc + ' words'}</span>
               </div>
               <div id="doc">
                 <input id="title" placeholder="Title" value={cur.title} onChange={(e) => edit('title', e.target.value)} />
+                <div className="meta"><span>Edited {ago(cur.updated_at)}</span>{cur.share_id && <span className="shr">· Shared</span>}{(cur.tags || []).map((t) => <span key={t} className="chip">{t}</span>)}</div>
                 {rd ? <div id="view"><Md text={cur.content} /></div>
-                  : <textarea id="body" placeholder="Start writing… AI will understand and remember it." value={cur.content} onChange={(e) => edit('content', e.target.value)} />}
+                  : <textarea id="body" placeholder="Start writing. AI will understand and remember it." value={cur.content} onChange={(e) => edit('content', e.target.value)} />}
               </div>
             </>
-          ) : <div id="doc"><p style={{ color: 'var(--mu)' }}>Create or pick a note to start.</p></div>}
+          ) : (
+            <div id="doc"><div className="empty"><I n="doc" /><h3>Your desk is clear</h3><p>Write a note and AI will organise and remember it.</p><button className="p" onClick={() => add()}><I n="plus" />New note</button></div></div>
+          )}
           <div id="ai">
-            <div className="r">
-              <input placeholder="Ask your notes: “what did we decide about the launch?”" style={{ flex: 1, minWidth: 200 }} value={qa} onChange={(e) => setQa(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && ask()} />
-              <button className="p" onClick={ask}>Ask</button>
-            </div>
-            {cur && <div className="r"><button onClick={fmt}>✨ Format</button><button onClick={resume}>Resume</button><button onClick={dates}>Dates</button>
-              {undo != null && <button onClick={() => { edit('content', undo); setUndo(null); }}>Undo AI</button>}</div>}
             {out && <div id="out">
               {out.m ? <i style={{ color: 'var(--mu)' }}>{out.m}</i>
                 : out.dates ? (out.dates.length ? out.dates.map((d, i) => <p key={i}><mark>{d.when}</mark> {d.what}</p>) : 'No dates found.')
                 : <>
                   <Md text={out.md} />
-                  {out.ins && <button onClick={() => { edit('content', cur.content + '\n\n## Summary\n' + out.ins); setOut(null); }}>Add to note</button>}
-                  {(out.ids || []).map((i) => <button key={i} className="chip" onClick={() => open(i)}>{notes.find((n) => n.id == i).title}</button>)}
+                  {out.ins && <button className="pill" onClick={() => { edit('content', cur.content + '\n\n## Summary\n' + out.ins); setOut(null); }}><I n="plus" />Add to note</button>}
+                  {(out.ids || []).map((i) => <button key={i} className="pill" onClick={() => open(i)}><I n="doc" />{notes.find((n) => n.id == i).title}</button>)}
                 </>}
+            </div>}
+            <div className="cap">
+              <I n="spark" />
+              <input placeholder="Ask your notes anything…" value={qa} onChange={(e) => setQa(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && ask()} />
+              <button className="p" onClick={ask} aria-label="Ask"><I n="send" /></button>
+            </div>
+            {cur && <div className="chips">
+              <button className="pill" onClick={fmt}><I n="spark" />Format</button>
+              <button className="pill" onClick={resume}><I n="doc" />Resume</button>
+              <button className="pill" onClick={dates}><I n="cal" />Dates</button>
+              {undo != null && <button className="pill" onClick={() => { edit('content', undo); setUndo(null); }}><I n="undo" />Undo AI</button>}
             </div>}
           </div>
         </main>
       </div>
-      {gear && <div id="set">
-        <div>{COLORS.map((c) => <button key={c} className="sw" style={{ background: c }} aria-label={'Accent ' + c} onClick={() => setPref('accent', c)} />)}</div>
-        <div><button onClick={() => setPref('theme', prefs.theme == 'dark' ? 'light' : 'dark')}>Light / Dark</button> <button onClick={() => setPref('font', { sans: 'serif', serif: 'mono', mono: 'sans' }[prefs.font])}>Font</button></div>
-        <div><button onClick={() => setPref('size', Math.max(13, prefs.size - 1))}>A−</button> <button onClick={() => setPref('size', Math.min(24, prefs.size + 1))}>A+</button></div>
-      </div>}
+      {gear && <><div className="scrim" onClick={() => setGear(false)} /><div id="set">
+        <div className="seg">{['light', 'dark'].map((t) => <button key={t} className={prefs.theme == t ? 'on' : ''} onClick={() => setPref('theme', t)}>{t == 'light' ? 'Light' : 'Dark'}</button>)}</div>
+        <div className="seg">{['sans', 'serif', 'mono'].map((f) => <button key={f} className={prefs.font == f ? 'on' : ''} onClick={() => setPref('font', f)}>{f == 'sans' ? 'Sans' : f == 'serif' ? 'Serif' : 'Mono'}</button>)}</div>
+        <div className="sws">{COLORS.map((c) => <button key={c} className={'sw' + (prefs.accent == c ? ' on' : '')} style={{ background: c }} aria-label={'Accent ' + c} onClick={() => setPref('accent', c)} />)}</div>
+        <div className="seg"><button onClick={() => setPref('size', Math.max(13, prefs.size - 1))}>A−</button><button disabled>{prefs.size}px</button><button onClick={() => setPref('size', Math.min(24, prefs.size + 1))}>A+</button></div>
+      </div></>}
       <div id="pa" className="pa"><h1>{cur?.title}</h1><Md text={cur?.content} /></div>
       {tm && <div id="toast">{tm}</div>}
     </>
